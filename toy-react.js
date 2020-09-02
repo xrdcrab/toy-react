@@ -51,12 +51,12 @@ export class Component {
             return;
         }
 
-        let merge = (oldState, newState) {
-            for (let p in newState 0) {
+        let merge = (oldState, newState) => {
+            for (let p in newState) {
                 if (this.state === null || typeof oldState[p] !== "object") {
                     oldState[p] = newState[p];
                 } else {
-                    merge(oldState[p], newState[p])
+                    merge(oldState[p], newState[p]);
                 }
             }
         }
