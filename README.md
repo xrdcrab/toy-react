@@ -74,7 +74,7 @@ React.createElement(
 ```
 
 通过例子我们来分析一下，总的来说可以分为五个大步骤: 
-![5steps](/https://github.com/xrdcrab/toy-react/raw/master/5steps.pic)
+![5steps](/https://github.com/xrdcrab/toy-react/blob/master/5steps.pic)
 
 ## ToyReact生命周期和在生命周期内都发生了什么
 
