@@ -1,33 +1,5 @@
 const RENDER_TO_DOM = Symbol("render to dom");
 
-class ElementWrapper {
-    constructor(type) {
-        // create the element on the real DOM
-        this.root = document.createElement(type);
-    }
-    setAttribute(name, value) {
-        // recognize event listener
-        if (name.match(/^on([\s\S]+)/)) {
-            this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value);
-        } else {
-            if (name === "className") {
-                this.root.setAttribute("class", value);
-            }
-            this.root.setAttribute(name, value);
-        }
-    }
-    appendChild(componenet) {
-        let range = document.createRange();
-        range.setStart(this.root, this.root.childNodes.length);
-        range.setEnd(this.root, this.root.childNodes.length);
-        componenet[RENDER_TO_DOM](range);
-    }
-    [RENDER_TO_DOM](range) {
-        range.deleteContents();
-        range.insertNode(this.root);
-    }
-}
-
 export class Component {
     constructor() {
         this.props = Object.create(null);
@@ -35,16 +7,26 @@ export class Component {
         this._root = null;
         this._range = null;
     }
+
+    // setAttribute is actually storing this.props
     setAttribute(name, value) {
         this.props[name] = value;
     }
+
+    // appendChild is actually storing this.children
     appendChild(componenet) {
         this.children.push(componenet);
     }
+
+    get vdom() {
+        return this.render().vdom;
+    }
+
     [RENDER_TO_DOM](range) {
         this._range = range;
         this.render()[RENDER_TO_DOM](range);
     }
+
     rerender() {
         // use Range object and API to avoid a bug that deleteContents won't 
         // accidentally make an empty element so that right side element shit into left 
@@ -58,6 +40,7 @@ export class Component {
         oldRange.setStart(range.endContainer, range.endOffset);
         oldRange.deleteContents();
     }
+
     setState(newState) {
         if (this.state === null || typeof this.state !== "object") {
             this.state = newState;
@@ -80,11 +63,69 @@ export class Component {
     }
 }
 
-class TextWrapper {
+class ElementWrapper extends Component {
+    constructor(type) {
+        super(type);
+        this.type = type;
+        // create the element on the real DOM
+        this.root = document.createElement(type);
+    }
+
+    // Need to comment out setAttribute and appendChild becuase not this class extends Component 
+    // We can't invoke parent class setAttribute & appendChild to print child elements
+    // if we don't comment out
+    // setAttribute is actually storing this.props
+    /*
+    setAttribute(name, value) {
+        // recognize event listener
+        if (name.match(/^on([\s\S]+)/)) {
+            this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value);
+        } else {
+            if (name === "className") {
+                this.root.setAttribute("class", value);
+            }
+            this.root.setAttribute(name, value);
+        }
+    }
+
+    // appendChild is actually storing this.children
+    appendChild(componenet) {
+        let range = document.createRange();
+        range.setStart(this.root, this.root.childNodes.length);
+        range.setEnd(this.root, this.root.childNodes.length);
+        componenet[RENDER_TO_DOM](range);
+    }
+    */
+
+    get vdom() {
+        return {
+            type: this.type,
+            props: this.props,
+            // converting conponent children to virtual DOM children
+            children: this.children.map(child => child.vdom),
+        }
+    }
+    
+    [RENDER_TO_DOM](range) {
+        range.deleteContents();
+        range.insertNode(this.root);
+    }
+}
+
+class TextWrapper extends Component {
     constructor(content) {
+        super(content); 
         // create the element on the real DOM
         this.root = document.createTextNode(content);
     }
+
+    get vdom() {
+        return {
+            type: "#text",
+            content: this.content,
+        }
+    }
+
     [RENDER_TO_DOM](range) {
         range.deleteContents();
         range.insertNode(this.root);
@@ -93,14 +134,17 @@ class TextWrapper {
 
 export function createElement(type, attributes, ...children) {
     let e;
+
     if (typeof type === "string") {
         e = new ElementWrapper(type);
     } else {
         e = new type;
     }
+
     for (let p in attributes) {
         e.setAttribute(p, attributes[p]);
     }
+
     let insertChildren = (children) => {
         for(let child of children){
             if (typeof child === "string") {
