@@ -2,9 +2,11 @@ const RENDER_TO_DOM = Symbol("render to dom");
 
 class ElementWrapper {
     constructor(type) {
+        // create the element on the real DOM
         this.root = document.createElement(type);
     }
     setAttribute(name, value) {
+        // recognize event listener
         if (name.match(/^on([\s\S]+)/)) {
             this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value);
         } else {
@@ -44,6 +46,8 @@ export class Component {
         this.render()[RENDER_TO_DOM](range);
     }
     rerender() {
+        // use Range object and API to avoid a bug that deleteContents won't 
+        // accidentally make an empty element so that right side element shit into left 
         let oldRange = this._range;
 
         let range = document.createRange();
@@ -78,6 +82,7 @@ export class Component {
 
 class TextWrapper {
     constructor(content) {
+        // create the element on the real DOM
         this.root = document.createTextNode(content);
     }
     [RENDER_TO_DOM](range) {
